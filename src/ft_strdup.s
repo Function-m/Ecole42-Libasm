@@ -1,46 +1,46 @@
-; ft_strdup.s
-; char *ft_strdup(const char *s);
-; s 문자열을 동적으로 복사하여 반환합니다.
-; 실패 시 NULL을 반환하고 errno를 설정합니다.
+; ft_strdup: 문자열을 동적 복사합니다.
+; 입력:
+;   RDI = const char *s
+; 출력:
+;   RAX = 복사된 문자열의 포인터 (char *)
 
-; 호출 규약 (System V x86-64):
-;   rdi → const char *s
-;   반환값 → rax (새로 할당된 문자열 포인터)
-
-extern malloc               ; 메모리 할당
-extern __errno_location     ; errno 설정
-extern ft_strlen            ; 문자열 길이 계산
-extern ft_strcpy            ; 문자열 복사
 global ft_strdup
+extern ft_strlen
+extern malloc
+
 section .text
 
 ft_strdup:
-    ; rdi = s (원본 문자열)
+    push    rdi                 ; s 저장 (ft_strlen이 RDI를 덮어씀)
 
-    ; 문자열 길이 구하기
-    push    rdi             ; s 보존
-    call    ft_strlen       ; rax = strlen(s)
-    mov     rbx, rax        ; 길이를 rbx에 저장
-    inc     rbx             ; 널 문자('\0') 포함해서 +1
+    call    ft_strlen           ; 문자열 길이 계산
+    inc     rax                 ; NULL 문자 포함을 위해 +1
 
-    ; 메모리 할당
-    mov     rdi, rbx        ; malloc(size) → size = rbx
-    call    malloc          ; rax = 할당된 메모리 주소 or NULL
+    mov     rdi, rax            ; malloc 인자: size = strlen + 1
+    ;call    malloc              ; malloc(size)
+    call    [rel malloc wrt ..got]   ; malloc 간접 호출 (PIE-safe)
 
-    test    rax, rax        ; rax == NULL이면 오류
-    je      .malloc_failed
+    test    rax, rax
+    je      .return_null        ; malloc 실패 시 NULL 리턴
 
-    ; 문자열 복사
-    ; rdi = dest, rsi = src
-    pop     rsi             ; rsi = s
-    mov     rdi, rax        ; rdi = malloc으로 받은 dest
-    call    ft_strcpy       ; rax = dest 반환
+    pop     rsi                 ; 저장해뒀던 원본 문자열 주소 (s)
+    mov     rdi, rax            ; 목적지 버퍼 주소
 
+.copy_loop:
+    mov     dl, byte [rsi]      ; src 문자 → DL
+    mov     byte [rdi], dl      ; dest에 문자 저장
+    inc     rsi
+    inc     rdi
+    test    dl, dl
+    jnz     .copy_loop          ; NULL이 아니라면 계속 복사
+
+    sub     rdi, rax            ; RDI를 원래 시작 주소로 되돌릴 필요는 없음
     ret
 
-.malloc_failed:
-    ; 오류 발생 → errno 설정
-    call    __errno_location
-    mov     dword [rax], 12     ; 12 = ENOMEM (Out of memory)
-    xor     rax, rax            ; NULL 반환
+.return_null:
+    pop     rsi                 ; 스택 정리 (에러 시)
     ret
+
+; GNU-stack 섹션: 실행 가능한 스택을 방지하기 위한 보안용 섹션
+; 실행 권한이 없는 스택임을 링커에 명시하여 경고를 제거함
+section .note.GNU-stack noalloc noexec nowrite progbits

@@ -1,33 +1,35 @@
-; ft_read.s
-; ssize_t ft_read(int fd, void *buf, size_t count);
-; fd로부터 최대 count 바이트를 buf에 읽어들입니다.
-; 성공 시 읽은 바이트 수, 실패 시 -1 반환 및 errno 설정
+; ft_read: read syscall을 호출하여 입력을 받습니다.
+; 입력:
+;   RDI = fd
+;   RSI = buf
+;   RDX = count
+; 출력:
+;   RAX = 읽은 바이트 수, 또는 -1 (에러 시)
 
-; 호출 규약 (System V x86-64):
-;   rdi → int fd
-;   rsi → void *buf
-;   rdx → size_t count
-;   반환값: ssize_t → rax
-
-extern __errno_location      ; errno 설정 함수
 global ft_read
+extern __errno_location     ; errno 위치를 반환하는 함수
+
 section .text
 
 ft_read:
-    mov     rax, 0           ; syscall 번호 0: read
-    syscall                  ; 시스템 콜 실행
+    mov     rax, 0           ; syscall 번호: 0 (read)
+    syscall                  ; 시스템 콜 호출
 
-    cmp     rax, 0           ; rax < 0 이면 오류
-    jl      .handle_error    ; 오류 처리 루틴으로 이동
+    cmp     rax, 0
+    jl      .error           ; RAX < 0 → 에러 처리
 
-    ret                      ; 성공 시 rax를 그대로 반환
+    ret                      ; 정상적으로 읽었으면 RAX 리턴
 
-.handle_error:
-    neg     rax              ; 오류 코드 양수로 변환 (ex: -5 → 5)
-    mov     rbx, rax         ; 오류 코드 rbx에 저장
+.error:
+    mov     rdi, rax         ; 에러 코드 백업
+    neg     rdi              ; 양수로 변환
+    ;call    __errno_location ; errno 위치 얻기
+    call    [rel __errno_location wrt ..got]
+    mov     [rax], edi       ; errno에 에러코드 저장 (32비트)
 
-    call    __errno_location ; errno 변수 주소를 rax에 반환
-    mov     [rax], ebx       ; 오류 코드를 errno에 저장
-
-    mov     rax, -1          ; 함수는 -1 반환
+    mov     rax, -1          ; 함수 리턴값은 -1
     ret
+
+; GNU-stack 섹션: 실행 가능한 스택을 방지하기 위한 보안용 섹션
+; 실행 권한이 없는 스택임을 링커에 명시하여 경고를 제거함
+section .note.GNU-stack noalloc noexec nowrite progbits

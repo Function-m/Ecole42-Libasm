@@ -1,25 +1,27 @@
-; ft_strcpy.s
-; 문자열 복사 함수: char *ft_strcpy(char *dst, const char *src);
-; dst에 src 문자열을 복사하고, dst를 반환합니다.
-
-; 호출 규약 (System V x86-64):
-; 첫 번째 인자: dst → rdi
-; 두 번째 인자: src → rsi
-; 반환값: dst → rax
+; ft_strcpy 함수: src 문자열을 dest에 복사합니다.
+; 입력:
+;   RDI: char *dest
+;   RSI: const char *src
+; 출력:
+;   RAX: char *dest (복사된 문자열의 시작 주소 반환)
 
 global ft_strcpy
+
 section .text
 
 ft_strcpy:
-    push    rdi             ; 원래 dst 주소를 보존하기 위해 스택에 저장
-
+    mov     rax, rdi        ; RAX에 dest 저장 (리턴값으로 사용할 주소)
+    
 .copy_loop:
-    mov     al, [rsi]       ; src에서 한 글자 읽기 (al = *src)
-    mov     [rdi], al       ; 그 글자를 dst에 저장 (*dst = al)
+    mov     dl, byte [rsi]  ; DL에 src의 현재 문자 복사
+    mov     byte [rdi], dl  ; dest에 DL 값 저장
     inc     rsi             ; src 포인터 증가
-    inc     rdi             ; dst 포인터 증가
-    test    al, al          ; 복사한 문자가 널문자('\0')인지 확인
-    jne     .copy_loop      ; 널이 아니면 루프 계속
+    inc     rdi             ; dest 포인터 증가
+    test    dl, dl          ; 현재 문자가 NULL인지 확인
+    jnz     .copy_loop      ; NULL이 아니면 계속 복사
 
-    pop     rax             ; rax = 원래 dst 주소 (반환값)
-    ret
+    ret                     ; 복사 완료 후 RAX (dest) 리턴
+
+; GNU-stack 섹션: 실행 가능한 스택을 방지하기 위한 보안용 섹션
+; 실행 권한이 없는 스택임을 링커에 명시하여 경고를 제거함
+section .note.GNU-stack noalloc noexec nowrite progbits

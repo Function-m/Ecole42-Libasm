@@ -1,35 +1,37 @@
-; ft_strcmp.s
-; 문자열 비교 함수: int ft_strcmp(const char *s1, const char *s2);
-; 두 문자열을 사전순으로 비교하여 결과를 정수로 반환합니다.
-;
-; 반환값:
-;   0  → 두 문자열이 같음
-;   <0 → s1이 s2보다 작음
-;   >0 → s1이 s2보다 큼
-
-; 호출 규약:
-;   첫 번째 인자: s1 → rdi
-;   두 번째 인자: s2 → rsi
-;   반환값: int → rax
+; ft_strcmp: 두 문자열을 비교합니다.
+; 입력:
+;   RDI = const char *s1
+;   RSI = const char *s2
+; 출력:
+;   RAX = 정수값 (s1[i] - s2[i])
 
 global ft_strcmp
+
 section .text
 
 ft_strcmp:
 .loop:
-    mov     al, [rdi]        ; s1의 현재 문자 → al
-    mov     bl, [rsi]        ; s2의 현재 문자 → bl
-    cmp     al, bl           ; al - bl 비교
-    jne     .done            ; 다르면 그 차이 반환
-    test    al, al           ; al이 0이면 (널 문자) 끝
-    je      .done            ; 같고 널이면 종료 (== 문자열 끝)
-    inc     rdi              ; s1 다음 문자로
-    inc     rsi              ; s2 다음 문자로
-    jmp     .loop            ; 다음 문자 비교
+    movzx   eax, byte [rdi]    ; s1의 현재 문자 -> EAX (zero-extend)
+    movzx   ecx, byte [rsi]    ; s2의 현재 문자 -> ECX (zero-extend)
 
-.done:
-    ; 문자 차이를 부호 있는 정수로 반환
-    movzx   eax, al          ; al → eax (0-255 정수)
-    movzx   ebx, bl          ; bl → ebx
-    sub     eax, ebx         ; eax = (int)al - (int)bl
+    cmp     eax, ecx           ; s1[i]와 s2[i] 비교
+    jne     .diff              ; 다르면 차이 반환
+
+    test    al, al             ; s1[i] == '\0' 인가?
+    je      .equal             ; 같으면 문자열 끝이므로 0 반환
+
+    inc     rdi                ; 다음 문자로 이동
+    inc     rsi
+    jmp     .loop
+
+.diff:
+    sub     eax, ecx           ; s1[i] - s2[i]
     ret
+
+.equal:
+    xor     eax, eax           ; 두 문자열 동일 → 0 반환
+    ret
+
+; GNU-stack 섹션: 실행 가능한 스택을 방지하기 위한 보안용 섹션
+; 실행 권한이 없는 스택임을 링커에 명시하여 경고를 제거함
+section .note.GNU-stack noalloc noexec nowrite progbits

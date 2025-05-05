@@ -13,58 +13,79 @@ ssize_t ft_write(int fd, const void *buf, size_t count);
 ssize_t ft_read(int fd, void *buf, size_t count);
 char    *ft_strdup(const char *s);
 
+// 출력 구분자
+void print_separator(const char *title) {
+    printf("\n===== %s =====\n", title);
+}
+
 int main(void) {
     char buffer[100];
     char *str = "Libasm is cool!";
     char dup_test[100];
 
-    // ft_strlen
-    printf("[ft_strlen]      = %zu\n", ft_strlen(str));
-    printf("[strlen]         = %zu\n\n", strlen(str));
+    // === ft_strlen ===
+    print_separator("ft_strlen vs strlen");
+    printf("ft_strlen(\"%s\") = %zu\n", str, ft_strlen(str));
+    printf("   strlen(\"%s\") = %zu\n", str, strlen(str));
 
-    // ft_strcpy
+    // === ft_strcpy ===
+    print_separator("ft_strcpy vs strcpy");
     ft_strcpy(dup_test, str);
-    printf("[ft_strcpy]      = %s\n", dup_test);
+    printf("ft_strcpy result = \"%s\"\n", dup_test);
     strcpy(buffer, str);
-    printf("[strcpy]         = %s\n\n", buffer);
+    printf("   strcpy result = \"%s\"\n", buffer);
 
-    // ft_strcmp
-    printf("[ft_strcmp eq]   = %d\n", ft_strcmp("abc", "abc"));
-    printf("[strcmp eq]      = %d\n", strcmp("abc", "abc"));
-    printf("[ft_strcmp lt]   = %d\n", ft_strcmp("abc", "abd"));
-    printf("[ft_strcmp gt]   = %d\n", ft_strcmp("abd", "abc"));
-    printf("[strcmp check]   = %d\n\n", strcmp("abd", "abc"));
+    // === ft_strcmp ===
+    print_separator("ft_strcmp vs strcmp");
+    const char *a = "abc", *b = "abc", *c = "abd";
+    printf("ft_strcmp(\"%s\", \"%s\") = %d\n", a, b, ft_strcmp(a, b));
+    printf("   strcmp(\"%s\", \"%s\") = %d\n", a, b, strcmp(a, b));
+    printf("ft_strcmp(\"%s\", \"%s\") = %d\n", a, c, ft_strcmp(a, c));
+    printf("   strcmp(\"%s\", \"%s\") = %d\n", a, c, strcmp(a, c));
+    printf("ft_strcmp(\"%s\", \"%s\") = %d\n", c, a, ft_strcmp(c, a));
+    printf("   strcmp(\"%s\", \"%s\") = %d\n", c, a, strcmp(c, a));
 
-    // ft_write (정상)
-    ssize_t w1 = ft_write(1, "[ft_write] test\n", 17);
-    printf("ft_write returned: %zd, errno: %d\n", w1, errno);
+    // === ft_write ===
+    print_separator("ft_write vs write");
+    const char *msg = "[ft_write] test (stdout)\n";
+    errno = 0;
+    ssize_t w1 = ft_write(1, msg, strlen(msg));
+    printf("ft_write returned: %zd, errno: %d (%s)\n", w1, errno, strerror(errno));
 
-    // ft_write (오류)
+    errno = 0;
     ssize_t w2 = ft_write(-1, "Error!\n", 7);
-    printf("ft_write (err)   = %zd, errno: %d\n\n", w2, errno);
+    printf("ft_write(-1) ret: %zd, errno: %d (%s)\n", w2, errno, strerror(errno));
 
-    // ft_read (정상)
-    printf("Type something for [ft_read]: ");
-    ssize_t r = ft_read(0, buffer, 99); // STDIN
-    if (r > 0) {
+    // === ft_read ===
+    print_separator("ft_read vs read (stdin)");
+    printf("Type something and press ENTER: ");
+    fflush(stdout);
+    errno = 0;
+    ssize_t r = ft_read(0, buffer, 99);
+    if (r >= 0) {
         buffer[r] = '\0';
-        printf("You typed: %s", buffer);
+        printf("ft_read returned: %zd, input: \"%s\"\n", r, buffer);
     } else {
         perror("ft_read");
     }
 
-    // ft_read (오류)
+    errno = 0;
     ssize_t r2 = ft_read(-1, buffer, 10);
-    printf("\nft_read (err)    = %zd, errno: %d\n\n", r2, errno);
+    printf("ft_read(-1) ret: %zd, errno: %d (%s)\n", r2, errno, strerror(errno));
 
-    // ft_strdup
+    // === ft_strdup ===
+    print_separator("ft_strdup vs strdup");
     char *dup = ft_strdup(str);
-    if (dup) {
-        printf("[ft_strdup]      = %s\n", dup);
-        free(dup);
+    char *libc_dup = strdup(str);
+    if (dup && libc_dup) {
+        printf("ft_strdup result  = \"%s\"\n", dup);
+        printf("   strdup result  = \"%s\"\n", libc_dup);
     } else {
-        perror("ft_strdup");
+        perror("ft_strdup or strdup failed");
     }
+    free(dup);
+    free(libc_dup);
 
+    printf("\n✅ All tests complete.\n");
     return 0;
 }
